@@ -1,0 +1,372 @@
+# NOVA Health: API Contract
+
+**Owner:** W.L.R. Sensith (review: Jayawardhana for backend, Kaluwitharana for AI engine)
+**Status:** Draft v0.1 (Phase 1, Week 1)
+**Style:** REST + JSON
+
+---
+
+## 1. Conventions
+
+| Item | Rule |
+|---|---|
+| Base URL | `/api/v1` |
+| Format | JSON (`Content-Type: application/json`) |
+| Field names | `snake_case` |
+| IDs | UUID strings |
+| Timestamps | ISO 8601, UTC (`2026-10-04T08:30:00Z`) |
+| Auth | `Authorization: Bearer <token>` on every endpoint except register and login |
+| Image upload | `multipart/form-data` |
+| Docs | FastAPI auto-docs at `/docs` |
+| Versioning | Breaking changes go to `/api/v2` |
+
+## 2. HTTP Methods
+
+| Method | Use |
+|---|---|
+| `GET` | Read |
+| `POST` | Create or trigger an action |
+| `PATCH` | Partial update |
+| `PUT` | Full replace |
+| `DELETE` | Remove |
+
+## 3. Status Codes
+
+| Code | Meaning |
+|---|---|
+| 200 | OK |
+| 201 | Created |
+| 204 | Deleted, no content |
+| 400 | Bad request |
+| 401 | Not logged in or token expired |
+| 403 | Not allowed to access this record |
+| 404 | Not found |
+| 422 | Validation error |
+| 429 | Too many requests |
+| 500 | Server error |
+
+## 4. Response Formats
+
+### Success
+
+```json
+{ "data": { } }
+```
+
+### List (paginated)
+
+Query: `?page=1&limit=20`
+
+```json
+{
+  "data": [ ],
+  "meta": { "page": 1, "limit": 20, "total": 57 }
+}
+```
+
+### Error (same shape everywhere)
+
+```json
+{
+  "error": {
+    "code": "INVALID_INPUT",
+    "message": "amount_ml must be positive"
+  }
+}
+```
+
+### Error codes
+
+| Code | Used for |
+|---|---|
+| `INVALID_INPUT` | Failed validation |
+| `UNAUTHORIZED` | Missing or bad token |
+| `FORBIDDEN` | Accessing another user's data |
+| `NOT_FOUND` | Record does not exist |
+| `SCAN_FAILED` | OCR or image analysis failed |
+| `AI_UNAVAILABLE` | AI engine or external model down |
+| `RATE_LIMITED` | Too many requests |
+| `SERVER_ERROR` | Unexpected failure |
+
+## 5. Endpoints (Draft)
+
+### 5.1 Auth
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/auth/register` | Create account |
+| POST | `/auth/login` | Get access token |
+| POST | `/auth/refresh` | Refresh token |
+| POST | `/auth/logout` | Invalidate token |
+
+### 5.2 Profile
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/profile` | Get own profile |
+| PATCH | `/profile` | Update profile |
+| GET | `/emergency-contacts` | List contacts |
+| POST | `/emergency-contacts` | Add contact |
+| DELETE | `/emergency-contacts/{id}` | Remove contact |
+
+### 5.3 Medications
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/medications` | List medications |
+| POST | `/medications` | Add medication |
+| PATCH | `/medications/{id}` | Update medication |
+| DELETE | `/medications/{id}` | Remove medication |
+| POST | `/medications/{id}/log` | Log a dose taken |
+
+### 5.4 Tracking
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/tracking/water` | Log water intake |
+| POST | `/tracking/sleep` | Log sleep |
+| POST | `/tracking/mood` | Log mood |
+| POST | `/tracking/symptoms` | Log symptom |
+| POST | `/tracking/period` | Log cycle data |
+| GET | `/tracking/{type}?from=&to=` | Get logs by date range |
+
+### 5.5 Scanning
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/scan/prescription` | Upload prescription image, return structured data |
+| POST | `/scan/report` | Upload medical report image, return structured data |
+| POST | `/scan/food` | Upload food image, return nutrition estimate |
+
+### 5.6 Wearables
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/wearables/sync` | Upload steps, heart rate, sleep from the phone |
+| GET | `/wearables/summary?date=` | Get daily wearable summary |
+
+### 5.7 Weather
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/weather/current` | Current weather and health tips for the user's location |
+
+### 5.8 AI Assistant and Reports
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/assistant/chat` | Send a message to the health assistant |
+| GET | `/reports/daily?date=` | Get daily health report |
+| GET | `/insights?range=week` | Get long-term insights |
+
+### 5.9 Notifications and Emergency
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/notifications/device` | Register device push token |
+| GET | `/notifications` | List notifications |
+| POST | `/emergency/trigger` | Start emergency workflow |
+| POST | `/emergency/cancel` | Cancel a false alarm |
+
+## 6. Examples
+
+### 6.1 Register
+
+```
+POST /api/v1/auth/register
+```
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "********",
+  "full_name": "Sample User"
+}
+```
+
+Response `201`:
+
+```json
+{
+  "data": {
+    "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "email": "user@example.com",
+    "full_name": "Sample User"
+  }
+}
+```
+
+### 6.2 Login
+
+```
+POST /api/v1/auth/login
+```
+
+Request:
+
+```json
+{ "email": "user@example.com", "password": "********" }
+```
+
+Response `200`:
+
+```json
+{
+  "data": {
+    "access_token": "<jwt>",
+    "refresh_token": "<jwt>",
+    "expires_in": 3600
+  }
+}
+```
+
+### 6.3 Log water
+
+```
+POST /api/v1/tracking/water
+```
+
+Request:
+
+```json
+{ "amount_ml": 250, "logged_at": "2026-10-04T08:30:00Z" }
+```
+
+Response `201`:
+
+```json
+{
+  "data": {
+    "id": "b1f2c3d4-0000-4000-8000-000000000001",
+    "amount_ml": 250,
+    "logged_at": "2026-10-04T08:30:00Z"
+  }
+}
+```
+
+### 6.4 Add medication
+
+```
+POST /api/v1/medications
+```
+
+Request:
+
+```json
+{
+  "name": "Sample Medicine",
+  "dosage": "500 mg",
+  "times": ["08:00", "20:00"],
+  "start_date": "2026-10-04",
+  "end_date": "2026-10-14"
+}
+```
+
+Response `201`:
+
+```json
+{
+  "data": {
+    "id": "b1f2c3d4-0000-4000-8000-000000000002",
+    "name": "Sample Medicine",
+    "dosage": "500 mg",
+    "times": ["08:00", "20:00"],
+    "start_date": "2026-10-04",
+    "end_date": "2026-10-14"
+  }
+}
+```
+
+### 6.5 Scan prescription
+
+```
+POST /api/v1/scan/prescription
+Content-Type: multipart/form-data
+```
+
+Request: form field `image` (JPEG or PNG, max 10 MB).
+
+Response `200`:
+
+```json
+{
+  "data": {
+    "scan_id": "b1f2c3d4-0000-4000-8000-000000000003",
+    "medications": [
+      {
+        "name": "Sample Medicine",
+        "dosage": "500 mg",
+        "frequency": "twice daily",
+        "duration_days": 10
+      }
+    ],
+    "confidence": 0.86,
+    "needs_user_confirmation": true
+  }
+}
+```
+
+Note: scan results must be confirmed by the user before being saved as medications.
+
+### 6.6 Assistant chat
+
+```
+POST /api/v1/assistant/chat
+```
+
+Request:
+
+```json
+{ "message": "Why have I been tired this week?" }
+```
+
+Response `200`:
+
+```json
+{
+  "data": {
+    "reply": "Your sleep averaged 5.5 hours and water intake was low on 4 days.",
+    "sources": ["sleep", "water"]
+  }
+}
+```
+
+### 6.7 Error example
+
+```
+POST /api/v1/tracking/water
+{ "amount_ml": -5 }
+```
+
+Response `422`:
+
+```json
+{
+  "error": {
+    "code": "INVALID_INPUT",
+    "message": "amount_ml must be positive"
+  }
+}
+```
+
+## 7. Rules for the Team
+
+1. Do not change an endpoint without updating this file and telling the team.
+2. Backend implements these paths exactly. Mobile builds against them.
+3. Until the backend is ready, mobile uses mock responses that match the examples above.
+4. Every endpoint (except register and login) checks the token and returns only the current user's data.
+5. Never put real personal health data in examples, tests, or commits.
+6. AI-generated output (scan results, assistant replies, reports) is guidance, not a medical diagnosis. The app must show a disclaimer.
+
+## 8. Open Questions
+
+1. Final database choice and ID format (owner: database design).
+2. Does the AI engine run as a separate service or as a module inside the backend?
+3. Rate limits for the AI endpoints.
+4. Image storage: keep the original image or delete it after scanning?
+
+## 9. Related Documents
+
+- Architecture: `architecture.md`
