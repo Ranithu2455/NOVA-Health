@@ -1,0 +1,118 @@
+%% NOVA Health ERD (Mermaid)
+%% Generated from existing EF Core models and ApplicationDbContext
+%% Do not modify models based on this diagram. Use source code as authoritative.
+
+erDiagram
+	USER {
+		uuid UserId PK
+		string Email
+		string PasswordHash
+		string Role
+		timestamp CreatedAt
+		timestamp UpdatedAt
+	}
+
+	PROFILE {
+		uuid ProfileId PK
+		uuid UserId FK
+		string FirstName
+		string LastName
+		timestamp DateOfBirth
+		string Gender
+		numeric Height
+		numeric Weight
+		string BloodGroup
+		timestamp CreatedAt
+		timestamp UpdatedAt
+	}
+
+	MEDICATION {
+		uuid MedicationId PK
+		uuid UserId FK
+		string Name
+		string Dosage
+		string Frequency
+		timestamp StartDate
+		timestamp EndDate
+		text Notes
+		timestamp CreatedAt
+	}
+
+	SYMPTOM {
+		uuid SymptomId PK
+		uuid UserId FK
+		string Name
+		int Severity
+		text Description
+		timestamp RecordedAt
+	}
+
+	SLEEP {
+		uuid SleepId PK
+		uuid UserId FK
+		timestamp SleepDate
+		timestamp BedTime
+		timestamp WakeTime
+		int DurationMinutes
+		int Quality
+		text Notes
+	}
+
+	MOOD {
+		uuid MoodId PK
+		uuid UserId FK
+		string MoodType
+		int Intensity
+		text Notes
+		timestamp RecordedAt
+	}
+
+	WATER {
+		uuid WaterId PK
+		uuid UserId FK
+		int AmountMl
+		timestamp RecordedAt
+	}
+
+	MEAL {
+		uuid MealId PK
+		uuid UserId FK
+		string MealType
+		string FoodName
+		int Calories
+		numeric Protein
+		numeric Carbohydrates
+		numeric Fat
+		timestamp RecordedAt
+	}
+
+	REPORT {
+		uuid ReportId PK
+		uuid UserId FK
+		string ReportType
+		string Title
+		string FileUrl
+		timestamp ReportDate
+		timestamp CreatedAt
+	}
+
+	EMERGENCYCONTACT {
+		uuid EmergencyContactId PK
+		uuid UserId FK
+		string Name
+		string Relationship
+		string PhoneNumber
+		string Email
+		int Priority
+	}
+
+	%% Relationships (match ApplicationDbContext)
+	USER ||--|| PROFILE : has
+	USER ||--o{ MEDICATION : has
+	USER ||--o{ SYMPTOM : records
+	USER ||--o{ SLEEP : records
+	USER ||--o{ MOOD : records
+	USER ||--o{ WATER : records
+	USER ||--o{ MEAL : records
+	USER ||--o{ REPORT : owns
+	USER ||--o{ EMERGENCYCONTACT : has
