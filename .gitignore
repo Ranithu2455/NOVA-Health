@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Flutter / Dart
+.dart_tool/
+build/
+
+# IDE
+.vscode/
+.idea/
